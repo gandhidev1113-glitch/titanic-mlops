@@ -40,6 +40,7 @@ data/derived/*.csv
 models/*.pkl
 models/*.joblib
 *.log
+*.pdf
 
 # Keep directory structure
 !data/raw/.gitkeep
@@ -67,4 +68,5 @@ data/output/*.html
 
 # UV
 .python-version
+
 
