@@ -37,6 +37,7 @@ ENV/
 # Project specific
 data/raw/*.csv
 data/derived/*.csv
+data/output
 models/*.pkl
 models/*.joblib
 *.log
