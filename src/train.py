@@ -8,16 +8,27 @@ Notes:
 - Kaggle test set has no labels (Survived), so we evaluate using a validation split
   from the original training portion.
 - We one-hot encode categorical columns to avoid sklearn fit errors.
+- MLflow is used for experiment tracking, logging parameters, metrics, and model artifacts.
 """
 
 import os
 import pickle
 from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import mlflow
+import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    precision_score,
+    recall_score,
+    f1_score,
+)
 from sklearn.model_selection import train_test_split
 
 from src.utils import load_data_safely
@@ -92,17 +103,37 @@ def build_features(
     return X, y, X_kaggle
 
 
-def train_baseline_model(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassifier:
-    """Train a baseline Random Forest classifier."""
+def train_baseline_model(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    n_estimators: int = 200,
+    max_depth: int = 10,
+    random_state: int = 42,
+    class_weight: str = "balanced",
+) -> RandomForestClassifier:
+    """
+    Train a baseline Random Forest classifier.
+
+    Args:
+        X_train: Training features
+        y_train: Training labels
+        n_estimators: Number of trees in the forest
+        max_depth: Maximum depth of trees
+        random_state: Random seed for reproducibility
+        class_weight: Class weight strategy
+
+    Returns:
+        Trained RandomForestClassifier model
+    """
     print("\n--- Training Baseline Model ---")
     print("Model: Random Forest Classifier")
 
     model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=10,
-        random_state=42,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
         n_jobs=-1,
-        class_weight="balanced",
+        class_weight=class_weight,
     )
 
     model.fit(X_train, y_train)
@@ -116,8 +147,13 @@ def evaluate_model(
     y_train: pd.Series,
     X_val: pd.DataFrame,
     y_val: pd.Series,
-) -> None:
-    """Evaluate the model and print key metrics."""
+) -> dict:
+    """
+    Evaluate the model and print key metrics.
+
+    Returns:
+        Dictionary containing evaluation metrics
+    """
     print("\n--- Model Evaluation ---")
 
     y_train_pred = model.predict(X_train)
@@ -126,7 +162,14 @@ def evaluate_model(
 
     y_val_pred = model.predict(X_val)
     val_accuracy = accuracy_score(y_val, y_val_pred)
+    val_precision = precision_score(y_val, y_val_pred, average="weighted")
+    val_recall = recall_score(y_val, y_val_pred, average="weighted")
+    val_f1 = f1_score(y_val, y_val_pred, average="weighted")
+
     print(f"Validation Accuracy: {val_accuracy:.4f}")
+    print(f"Validation Precision: {val_precision:.4f}")
+    print(f"Validation Recall: {val_recall:.4f}")
+    print(f"Validation F1-Score: {val_f1:.4f}")
 
     print("\n--- Classification Report (Validation) ---")
     print(classification_report(y_val, y_val_pred))
@@ -141,8 +184,21 @@ def evaluate_model(
     ).sort_values("importance", ascending=False)
     print(importance.head(10).to_string(index=False))
 
+    # Return metrics dictionary for MLflow logging
+    metrics = {
+        "train_accuracy": train_accuracy,
+        "val_accuracy": val_accuracy,
+        "val_precision": val_precision,
+        "val_recall": val_recall,
+        "val_f1": val_f1,
+    }
 
-def save_model(model: RandomForestClassifier, output_path: str = "models/baseline_model.pkl") -> None:
+    return metrics
+
+
+def save_model(
+    model: RandomForestClassifier, output_path: str = "models/baseline_model.pkl"
+) -> None:
     """Save the trained model artifact."""
     Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:
@@ -169,7 +225,9 @@ def save_kaggle_predictions(
     if os.path.exists(raw_test_path):
         raw_test = load_data_safely(raw_test_path)
         if "PassengerId" in raw_test.columns and len(raw_test) == len(preds):
-            sub = pd.DataFrame({"PassengerId": raw_test["PassengerId"].astype(int), "Survived": preds})
+            sub = pd.DataFrame(
+                {"PassengerId": raw_test["PassengerId"].astype(int), "Survived": preds}
+            )
         else:
             # Fallback: generate an index-based id if PassengerId is missing/mismatched
             sub = pd.DataFrame({"PassengerId": np.arange(1, len(preds) + 1), "Survived": preds})
@@ -180,45 +238,159 @@ def save_kaggle_predictions(
     print(f"✓ Kaggle predictions saved to {output_path}")
 
 
-def main() -> None:
-    """Main training pipeline."""
+def main(
+    experiment_name: str = "titanic_survival_prediction",
+    run_name: str = None,
+    n_estimators: int = 200,
+    max_depth: int = 10,
+    test_size: float = 0.2,
+    random_state: int = 42,
+) -> None:
+    """
+    Main training pipeline with MLflow tracking.
+
+    Args:
+        experiment_name: MLflow experiment name
+        run_name: Name for this specific run (auto-generated if None)
+        n_estimators: Number of trees in Random Forest
+        max_depth: Maximum depth of trees
+        test_size: Validation split size
+        random_state: Random seed for reproducibility
+    """
     print("=" * 60)
     print("Titanic Survival Prediction - Baseline Model Training")
     print("=" * 60)
 
-    df = load_preprocessed_data()
-    if df is None:
-        return
+    # Set up MLflow
+    mlflow.set_experiment(experiment_name)
 
-    # Split merged df back into train/test portions
-    train_df, test_df = split_merged_df(df)
+    # Generate run name if not provided
+    if run_name is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_name = f"baseline_rf_{n_estimators}trees_{max_depth}depth_{timestamp}"
 
-    # Build encoded features
-    X, y, X_kaggle = build_features(train_df, test_df)
+    with mlflow.start_run(run_name=run_name):
+        # Log parameters
+        mlflow.log_params(
+            {
+                "n_estimators": n_estimators,
+                "max_depth": max_depth,
+                "test_size": test_size,
+                "random_state": random_state,
+                "class_weight": "balanced",
+                "model_type": "RandomForestClassifier",
+            }
+        )
 
-    # Validation split (evaluate properly without Kaggle test labels)
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+        df = load_preprocessed_data()
+        if df is None:
+            return
 
-    print(f"Train set: {X_train.shape}, Val set: {X_val.shape}, Kaggle test: {X_kaggle.shape}")
+        # Log dataset info
+        mlflow.log_params(
+            {
+                "train_samples": len(df),
+                "n_features": len(df.columns) - 1,  # Excluding target
+            }
+        )
 
-    # Train
-    model = train_baseline_model(X_train, y_train)
+        # Split merged df back into train/test portions
+        train_df, test_df = split_merged_df(df)
 
-    # Evaluate
-    evaluate_model(model, X_train, y_train, X_val, y_val)
+        # Build encoded features
+        X, y, X_kaggle = build_features(train_df, test_df)
 
-    # Save model
-    save_model(model)
+        # Validation split (evaluate properly without Kaggle test labels)
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y, test_size=test_size, random_state=random_state, stratify=y
+        )
 
-    # Optional: generate Kaggle predictions file
-    save_kaggle_predictions(model, X_kaggle)
+        print(f"Train set: {X_train.shape}, Val set: {X_val.shape}, Kaggle test: {X_kaggle.shape}")
 
-    print("\n" + "=" * 60)
-    print("Training pipeline completed successfully!")
-    print("=" * 60)
+        # Log data split info
+        mlflow.log_params(
+            {
+                "train_size": len(X_train),
+                "val_size": len(X_val),
+                "n_features_encoded": X_train.shape[1],
+            }
+        )
+
+        # Train
+        model = train_baseline_model(
+            X_train,
+            y_train,
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=random_state,
+        )
+
+        # Evaluate
+        metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
+
+        # Log metrics to MLflow
+        mlflow.log_metrics(metrics)
+
+        # Log model artifact
+        mlflow.sklearn.log_model(model, "model", registered_model_name="TitanicSurvivalPredictor")
+
+        # Save model locally as well
+        save_model(model)
+
+        # Optional: generate Kaggle predictions file
+        save_kaggle_predictions(model, X_kaggle)
+
+        # Log feature importance as artifact
+        importance_df = pd.DataFrame(
+            {"feature": X_train.columns, "importance": model.feature_importances_}
+        ).sort_values("importance", ascending=False)
+
+        importance_path = "data/output/feature_importance.csv"
+        Path(os.path.dirname(importance_path)).mkdir(parents=True, exist_ok=True)
+        importance_df.to_csv(importance_path, index=False)
+        mlflow.log_artifact(importance_path)
+
+        print("\n" + "=" * 60)
+        print("Training pipeline completed successfully!")
+        print(f"MLflow run: {run_name}")
+        print(f"Experiment: {experiment_name}")
+        print("=" * 60)
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Train Titanic survival prediction model with MLflow tracking"
+    )
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default="titanic_survival_prediction",
+        help="MLflow experiment name",
+    )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=None,
+        help="Name for this MLflow run (auto-generated if not provided)",
+    )
+    parser.add_argument(
+        "--n-estimators", type=int, default=200, help="Number of trees in Random Forest"
+    )
+    parser.add_argument("--max-depth", type=int, default=10, help="Maximum depth of trees")
+    parser.add_argument("--test-size", type=float, default=0.2, help="Validation split size")
+    parser.add_argument(
+        "--random-state", type=int, default=42, help="Random seed for reproducibility"
+    )
+
+    args = parser.parse_args()
+
+    main(
+        experiment_name=args.experiment_name,
+        run_name=args.run_name,
+        n_estimators=args.n_estimators,
+        max_depth=args.max_depth,
+        test_size=args.test_size,
+        random_state=args.random_state,
+    )

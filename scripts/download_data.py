@@ -1,8 +1,11 @@
 r"""
-Download script for fetching the Titanic dataset from Kaggle using the Kaggle API.
+OPTIONAL: Download script for fetching the Titanic dataset from Kaggle using the Kaggle API.
+
+NOTE: This script is optional. The project expects data files to be manually downloaded
+and placed in data/raw/ directory. Use this script only if you prefer automated download.
 
 Prerequisites:
-1. Install Kaggle API: pip install kaggle (or via project dependencies)
+1. Install Kaggle API: uv sync --extra kaggle (or pip install kaggle)
 2. Set up Kaggle API credentials:
    - Go to https://www.kaggle.com/settings
    - Scroll to "API" section and click "Create New Token"
@@ -117,7 +120,9 @@ def main():
     train_candidates = [output_dir / "train.csv", output_dir / "titanic_train.csv"]
     test_candidates = [output_dir / "test.csv", output_dir / "titanic_test.csv"]
 
-    data_exists = any(p.exists() for p in train_candidates) and any(p.exists() for p in test_candidates)
+    data_exists = any(p.exists() for p in train_candidates) and any(
+        p.exists() for p in test_candidates
+    )
 
     force_download = os.getenv("FORCE_DOWNLOAD", "0").strip() == "1"
 
@@ -131,7 +136,7 @@ def main():
 
     download_titanic_dataset(output_dir=str(output_dir))
 
-        # Rename files to match expected names in preprocessing script
+    # Rename files to match expected names in preprocessing script
     print("\nRenaming files to match expected names...")
 
     train_src = output_dir / "train.csv"
@@ -170,7 +175,6 @@ def main():
             print("  ✓ test.csv -> titanic_test.csv")
     elif test_dst.exists():
         print("  ✓ titanic_test.csv already present")
-
 
     print("\n" + "=" * 60)
     print("All done! You can now run your preprocessing script.")
