@@ -8,6 +8,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+*.zip
 eggs/
 .eggs/
 lib/
@@ -38,11 +39,12 @@ ENV/
 # Allow raw data files to be committed
 # data/raw/*.csv  # Commented out to allow raw data in git
 data/derived/*.csv
-data/output
+data/output/*
+!data/output/.gitkeep
 models/*.pkl
 models/*.joblib
+models/*.h5
 *.log
-*.pdf
 
 # Keep directory structure
 !data/raw/.gitkeep
@@ -63,13 +65,26 @@ Thumbs.db
 # MLflow
 mlruns/
 mlflow.db
+mlartifacts/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+
+# PDF files (should not be committed - no version control, large binary blobs)
+*.pdf
+!docs/*.pdf  # Allow PDFs in docs if needed for documentation
 
 # Reports (keep structure but ignore generated files)
-data/output/*.pdf
 data/output/*.html
 
 # UV
 .python-version
 
-
-
+# Documentation builds
+docs/_build/
+docs/.doctrees/
