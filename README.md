@@ -52,7 +52,7 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
 	- Model Validation & Data Leakage Prevention
 	- Model Explainability & Analysis
 	- Keep the best model
-- **Arthur Amuda – Quality & Reproducibility Engineer (Testing & Experiment Governance Lead)
+- **Arthur Amuda** – Quality & Reproducibility Engineer (Testing & Experiment Governance Lead)
   - Enforce and maintain unit test coverage (≥60%) using pytest an pytest-cov.
   - Configure and maintain CI workflow for automated testing via GitHub Actions.
   - Ensure MLflow experiment logging consistency (parameters, metrics, artifacts).
