@@ -1,0 +1,27 @@
+name: Docker Build and Test
+
+on:
+  push:
+    # Runs when you or teammates push to these specific branches
+    branches: [ "main", "deckumar-parikshit-gandhi" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker Image
+      run: |
+        docker build -t titanic-mlops-image:latest .
+        
+    - name: Verify Docker Image
+      run: |
+        docker images | grep titanic-mlops-image
