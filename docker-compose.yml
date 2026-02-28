@@ -1,0 +1,50 @@
+# =============================================================================
+# docker-compose.yml – local development & testing
+#
+# Usage:
+#   docker compose up inference        # start the API
+#   docker compose run train           # run training job
+#   docker compose up --build          # rebuild before starting
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Training job (runs once and exits)
+  # ---------------------------------------------------------------------------
+  train:
+    build:
+      context: .
+      target: train
+    image: titanic-train:latest
+    volumes:
+      - ./data:/app/data        # mount raw data
+      - ./models:/app/models    # persist trained models
+    environment:
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-mlruns}
+    profiles: ["train"]         # only starts with: docker compose --profile train up
+
+  # ---------------------------------------------------------------------------
+  # Inference API
+  # ---------------------------------------------------------------------------
+  inference:
+    build:
+      context: .
+      target: inference
+    image: titanic-api:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models    # share models from training
+    environment:
+      - MODEL_URI=${MODEL_URI:-}
+      - FEATURE_COLUMNS_PATH=models/feature_columns.json
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped

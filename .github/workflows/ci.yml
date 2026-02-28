@@ -1,0 +1,161 @@
+# =============================================================================
+# CI/CD Pipeline – Titanic MLOps
+# Triggers on every push and PR to main.
+# Jobs:
+#   1. lint-and-test  – pre-commit + pytest with coverage
+#   2. docker-build   – build both Docker targets, smoke-test the API
+# =============================================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main", "dev", "checkpoint-*"]
+  pull_request:
+    branches: ["main"]
+
+# Cancel any in-progress run for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 – Code quality & tests
+  # ---------------------------------------------------------------------------
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install UV
+        run: pip install uv
+
+      - name: Cache UV virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
+      - name: Install dependencies (incl. dev)
+        run: uv sync --frozen --extra dev
+
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files
+
+      - name: Run tests with coverage
+        run: |
+          uv run pytest tests/ \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=60 \
+            -v
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ---------------------------------------------------------------------------
+  # Job 2 – Docker build & smoke-test
+  # ---------------------------------------------------------------------------
+  docker-build:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    needs: lint-and-test   # only run if tests pass
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---- Build train image ------------------------------------------------
+      - name: Build training image
+        run: |
+          docker build \
+            --target train \
+            --tag titanic-train:${{ github.sha }} \
+            --tag titanic-train:latest \
+            .
+
+      # ---- Build inference image --------------------------------------------
+      - name: Build inference image
+        run: |
+          docker build \
+            --target inference \
+            --tag titanic-api:${{ github.sha }} \
+            --tag titanic-api:latest \
+            .
+
+      # ---- Smoke-test the API -----------------------------------------------
+      - name: Start inference container
+        run: |
+          docker run -d \
+            --name titanic-api-test \
+            -p 8000:8000 \
+            -v "${{ github.workspace }}/models:/app/models" \
+            titanic-api:latest
+
+      - name: Wait for API to be healthy
+        run: |
+          for i in $(seq 1 15); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' titanic-api-test 2>/dev/null || echo "starting")
+            echo "Attempt $i – container health: $STATUS"
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "✅ API is up!"
+              break
+            fi
+            sleep 3
+          done
+          curl -sf http://localhost:8000/health || (docker logs titanic-api-test && exit 1)
+
+      - name: Test /health endpoint
+        run: |
+          RESPONSE=$(curl -sf http://localhost:8000/health)
+          echo "Health response: $RESPONSE"
+
+      - name: Test /ready endpoint
+        run: |
+          RESPONSE=$(curl -sf http://localhost:8000/ready || echo '{"status":"not ready"}')
+          echo "Ready response: $RESPONSE"
+
+      - name: Test /predict endpoint (no model fallback)
+        run: |
+          RESPONSE=$(curl -s -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{
+              "pclass": 1,
+              "sex": "female",
+              "age": 29.0,
+              "sibsp": 0,
+              "parch": 0,
+              "fare": 80.0,
+              "embarked": "S",
+              "title": "Mrs"
+            }')
+          echo "Predict response: $RESPONSE"
+          # Check that the response contains "survived" key
+          echo "$RESPONSE" | python3 -c "import sys, json; d=json.load(sys.stdin); assert 'survived' in d, f'Missing survived key: {d}'"
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs titanic-api-test
+
+      - name: Stop & remove test container
+        if: always()
+        run: docker rm -f titanic-api-test || true
+
+      # ---- Save image digest for traceability ------------------------------
+      - name: Print image digests
+        run: |
+          docker inspect --format='{{index .RepoDigests 0}}' titanic-api:latest 2>/dev/null || \
+          docker inspect --format='ID: {{.Id}}' titanic-api:latest
