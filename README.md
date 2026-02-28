@@ -120,6 +120,7 @@ MLOFINAL/
 │   └── output/           # Generated outputs (predictions, reports)
 ├── src/                   # Core ML code package
 │   ├── __init__.py
+│   ├── api.py            # FastAPI inference service
 │   ├── main.py           # Main CLI entry point
 │   ├── preprocessing.py  # Data preprocessing pipeline
 │   ├── train.py          # Model training with MLflow
@@ -131,6 +132,7 @@ MLOFINAL/
 │   └── setup_checkpoint2.sh   # Linux/Mac setup script
 ├── tests/                 # Test suite
 │   ├── __init__.py
+│   ├── test_api.py
 │   ├── test_preprocessing.py
 │   ├── test_train.py
 │   └── test_utils.py
@@ -143,6 +145,7 @@ MLOFINAL/
 ├── configs/               # Configuration files (for future use)
 ├── pyproject.toml         # Project dependencies and config
 ├── uv.lock                # Locked dependencies
+├── Dockerfile             # Docker targets: train / inference
 ├── .gitignore             # Git ignore rules
 ├── .pre-commit-config.yaml # Pre-commit hooks config
 └── README.md              # This file
@@ -240,6 +243,8 @@ mlflow ui
 - **Metrics**: Accuracy, Precision, Recall, F1-Score (train and validation)
 - **Artifacts**:
   - Trained model (registered as `TitanicSurvivalPredictor`)
+  - Local model artifact: `models/baseline_model.pkl`
+  - Feature schema artifact: `models/feature_columns.json`
   - Feature importance CSV
 - **Experiment Naming**: Clear naming convention: `baseline_rf_{n_estimators}trees_{max_depth}depth_{timestamp}`
 
@@ -276,12 +281,100 @@ Use the MLflow UI to:
 - ✅ Reproducible ML experiments (MLflow tracking, parameter logging)
 - ✅ Experiment tracking with MLflow (parameters, metrics, artifacts)
 
+## ✅ Checkpoint 3 - Serving & Containerization
+
+**Status**: ✅ Implemented
+
+### Deliverables
+
+- ✅ **FastAPI application for inference**: `src/api.py`
+- ✅ **Clear API schema**:
+  - Request model: `PredictionRequest`
+  - Response model: `PredictionResponse`
+- ✅ **Dockerfile for training and inference**:
+  - `docker build --target train ...`
+  - `docker build --target inference ...`
+- ✅ **Application runnable via Docker** (`uvicorn` in inference target)
+- ✅ **Basic API tests**: `tests/test_api.py` with `/health`, `/ready`, `/predict`
+- ✅ **Inference model loading from MLflow or artifact**:
+  - MLflow via `MODEL_URI`
+  - Local fallback via `models/baseline_model.pkl`
+- ✅ **README updated** (this section + usage below)
+
+### FastAPI Endpoints
+
+- `GET /health`: liveness check
+- `GET /ready`: readiness + model source
+- `POST /predict`: single-passenger inference
+
+### API Contract
+
+`POST /predict` request body:
+
+```json
+{
+  "pclass": 1,
+  "sex": "female",
+  "age": 29,
+  "sibsp": 0,
+  "parch": 0,
+  "fare": 80.0,
+  "embarked": "S",
+  "title": "Mrs"
+}
+```
+
+`POST /predict` response body:
+
+```json
+{
+  "survived": 1,
+  "survived_label": "survived",
+  "probability": 0.8,
+  "model_source": "artifact:models/baseline_model.pkl"
+}
+```
+
+### Run Inference API Locally
+
+```bash
+uv run uvicorn src.api:app --host 0.0.0.0 --port 8000
+```
+
+Open interactive API docs at: `http://localhost:8000/docs`
+
+### Run With Docker
+
+Build and run training image:
+
+```bash
+docker build --target train -t titanic-train:latest .
+docker run --rm -v "$(pwd)/models:/app/models" titanic-train:latest
+```
+
+Build and run inference image:
+
+```bash
+docker build --target inference -t titanic-api:latest .
+docker run --rm -p 8000:8000 -v "$(pwd)/models:/app/models" titanic-api:latest
+```
+
+Run inference container against MLflow model URI:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e MODEL_URI="models:/TitanicSurvivalPredictor/1" \
+  -e FEATURE_COLUMNS_PATH="models/feature_columns.json" \
+  -v "$(pwd)/models:/app/models" \
+  titanic-api:latest
+```
+
 ## 📝 Notes
 
 - This project is part of the ML Ops course final project
 - **Checkpoint 1**: Project setup, data preprocessing, and baseline model training ✅
 - **Checkpoint 2**: Code quality, testing, and MLflow experiment tracking ✅
-- **Checkpoint 3**: Model serving (FastAPI), containerization (Docker)
+- **Checkpoint 3**: Model serving (FastAPI), containerization (Docker) ✅
 - **Checkpoint 4**: Monitoring, final report, and deployment
 
 ## 📚 Additional Documentation
