@@ -13,6 +13,7 @@ Notes:
 
 import os
 import pickle
+import json
 from pathlib import Path
 from datetime import datetime
 
@@ -206,6 +207,16 @@ def save_model(
     print(f"\n✓ Model saved to {output_path}")
 
 
+def save_feature_columns(
+    columns: list[str], output_path: str = "models/feature_columns.json"
+) -> None:
+    """Save feature column order used during training for serving alignment."""
+    Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(columns, f)
+    print(f"✓ Feature columns saved to {output_path}")
+
+
 def save_kaggle_predictions(
     model: RandomForestClassifier,
     X_kaggle: pd.DataFrame,
@@ -336,6 +347,7 @@ def main(
 
         # Save model locally as well
         save_model(model)
+        save_feature_columns(X_train.columns.tolist())
 
         # Optional: generate Kaggle predictions file
         save_kaggle_predictions(model, X_kaggle)
