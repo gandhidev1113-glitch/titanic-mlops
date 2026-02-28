@@ -32,7 +32,6 @@ CMD ["python", "-m", "src.main", "all"]
 FROM base AS inference
 
 RUN uv sync --frozen --no-dev
-RUN pip install --no-cache-dir uvicorn
 
 COPY src/ ./src/
 COPY configs/ ./configs/
@@ -49,4 +48,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-CMD ["sh", "-c", "python -m uvicorn src.api:app --host $HOST --port $PORT"]
+CMD ["sh", "-c", "uv run uvicorn src.api:app --host $HOST --port $PORT"]
