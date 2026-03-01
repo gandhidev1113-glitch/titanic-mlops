@@ -27,6 +27,9 @@ CMD ["python", "-m", "src.main", "all"]
 # ---------------------------------------------------------------------------
 FROM base AS inference
 
+# ensure lockfile + project metadata exist in this stage
+COPY pyproject.toml uv.lock README.md ./
+
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
