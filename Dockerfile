@@ -13,6 +13,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Use uv-created venv by default
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock README.md ./
@@ -31,8 +35,7 @@ CMD ["python", "-m", "src.main", "all"]
 
 FROM base AS inference
 
-RUN uv sync --frozen --no-dev && pip install --no-cache-dir uvicorn
-RUN uv pip install uvicorn
+RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
 COPY configs/ ./configs/
@@ -49,4 +52,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-CMD ["sh", "-c", "uvicorn src.api:app --host $HOST --port $PORT"]
+CMD ["sh", "-c", "python -m uvicorn src.api:app --host $HOST --port $PORT"]

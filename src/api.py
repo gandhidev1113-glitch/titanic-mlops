@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-import mlflow.pyfunc
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -80,11 +79,19 @@ def load_model_bundle() -> ModelBundle:
 
     if model_uri:
         logger.info("Loading inference model from MLflow URI: %s", model_uri)
+        try:
+            import mlflow.pyfunc  # lazy import (optional dependency)
+        except Exception as exc:
+            raise RuntimeError(
+                "MODEL_URI is set but mlflow is not installed in this environment. "
+                "Either install mlflow as a main dependency, or unset MODEL_URI to use local artifacts."
+            ) from exc
+
         model = mlflow.pyfunc.load_model(model_uri)
         return ModelBundle(
             model=model, source=f"mlflow:{model_uri}", expected_features=expected_features
         )
-
+    
     logger.info("Loading inference model from local artifact: %s", model_path)
     path = Path(model_path)
     if not path.exists():
@@ -167,7 +174,7 @@ def ready() -> dict:
         bundle = get_model_bundle()
         return {"status": "ready", "model_source": bundle.source}
     except Exception as exc:
-        return {"status": "not_ready", "reason": str(exc)}
+        raise HTTPException(status_code=503, detail=f"Not ready: {exc}") from exc
 
 
 @app.post("/predict", response_model=PredictionResponse)
