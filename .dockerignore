@@ -1,1 +1,11 @@
-!uv.lock
+# Python / venv
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+htmlcov/
+
+# Local / runtime outputs (ok to exclude from build context)
+data/output/*
+data/derived/*
+models/*
