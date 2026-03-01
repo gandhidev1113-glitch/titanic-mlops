@@ -57,6 +57,7 @@ def test_ready_endpoint(monkeypatch):
     assert payload["status"] == "ready"
     assert payload["model_source"] == "artifact:dummy"
 
+
 def test_ready_endpoint_not_ready(monkeypatch):
     def _raise():
         raise RuntimeError("model missing")
