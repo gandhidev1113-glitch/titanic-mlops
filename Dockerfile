@@ -10,7 +10,7 @@ ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN pip install --no-cache-dir uv
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir -e .
@@ -26,6 +26,9 @@ CMD ["python", "-m", "src.main", "all"]
 
 # ---------------------------------------------------------------------------
 FROM base AS inference
+
+# ensure lockfile + project metadata exist in this stage
+COPY pyproject.toml uv.lock README.md ./
 
 RUN uv sync --frozen --no-dev
 

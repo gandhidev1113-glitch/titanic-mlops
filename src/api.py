@@ -91,7 +91,7 @@ def load_model_bundle() -> ModelBundle:
         return ModelBundle(
             model=model, source=f"mlflow:{model_uri}", expected_features=expected_features
         )
-    
+
     logger.info("Loading inference model from local artifact: %s", model_path)
     path = Path(model_path)
     if not path.exists():
