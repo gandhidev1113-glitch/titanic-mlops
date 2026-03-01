@@ -31,7 +31,7 @@ CMD ["python", "-m", "src.main", "all"]
 
 FROM base AS inference
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev && pip install --no-cache-dir uvicorn
 RUN uv pip install uvicorn
 
 COPY src/ ./src/
