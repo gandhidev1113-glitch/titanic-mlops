@@ -41,9 +41,7 @@ ENV/
 data/derived/*.csv
 data/output/*
 !data/output/.gitkeep
-models/*.pkl
-models/*.joblib
-models/*.h5
+models/*
 *.log
 
 # Keep directory structure

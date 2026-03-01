@@ -283,6 +283,8 @@ Use the MLflow UI to:
 
 ## ✅ Checkpoint 3 - Serving & Containerization
 
+This project supports reproducible training and inference using a multi-stage Dockerfile.
+
 **Status**: ✅ Implemented
 
 ### Deliverables
@@ -300,6 +302,10 @@ Use the MLflow UI to:
   - MLflow via `MODEL_URI`
   - Local fallback via `models/baseline_model.pkl`
 - ✅ **README updated** (this section + usage below)
+- ✅ **Readiness semantics aligned with production practice**:
+  - `/ready` returns `200` when model is loaded
+  - `/ready` returns `503` when model is unavailable
+- ✅ **Test coverage ≥ 60% requirement satisfied (70% achieved)**
 
 ### FastAPI Endpoints
 
@@ -350,6 +356,7 @@ Build and run training image:
 ```bash
 docker build --target train -t titanic-train:latest .
 docker run --rm -v "$(pwd)/models:/app/models" titanic-train:latest
+> ⚠ Model artifacts (`models/baseline_model.pkl`, `feature_columns.json`) are generated during training and are not committed to Git.
 ```
 
 Build and run inference image:

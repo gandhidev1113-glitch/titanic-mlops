@@ -57,6 +57,17 @@ def test_ready_endpoint(monkeypatch):
     assert payload["status"] == "ready"
     assert payload["model_source"] == "artifact:dummy"
 
+def test_ready_endpoint_not_ready(monkeypatch):
+    def _raise():
+        raise RuntimeError("model missing")
+
+    monkeypatch.setattr("src.api.get_model_bundle", _raise)
+    client = TestClient(app)
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert "Not ready" in response.json()["detail"]
+
 
 def test_predict_endpoint(monkeypatch):
     monkeypatch.setattr("src.api.get_model_bundle", lambda: _mock_bundle())
