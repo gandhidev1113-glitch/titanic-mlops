@@ -1,15 +1,7 @@
-# =============================================================================
-# Titanic MLOps – Multi-Stage Dockerfile
-# Targets:
-#   docker build --target train     -t titanic-train:latest .
-#   docker build --target inference -t titanic-api:latest   .
-# =============================================================================
-
 FROM python:3.11-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    UV_SYSTEM_PYTHON=1
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
@@ -18,28 +10,27 @@ ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN pip install --no-cache-dir uv
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
 
-COPY pyproject.toml uv.lock README.md ./
+RUN pip install --no-cache-dir -e .
 
+# ---------------------------------------------------------------------------
 FROM base AS train
 
-RUN uv sync --frozen --no-dev
-
-COPY src/ ./src/
 COPY configs/ ./configs/
 COPY data/ ./data/
-
 RUN mkdir -p models
 
 CMD ["python", "-m", "src.main", "all"]
 
+# ---------------------------------------------------------------------------
 FROM base AS inference
 
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
 COPY configs/ ./configs/
-
 RUN mkdir -p models
 
 ENV MODEL_URI="" \
