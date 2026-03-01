@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock README.md ./
 
 FROM base AS train
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --no-dev
 
 COPY src/ ./src/
 COPY configs/ ./configs/
@@ -31,7 +31,7 @@ CMD ["python", "-m", "src.main", "all"]
 
 FROM base AS inference
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --no-dev
 
 COPY src/ ./src/
 COPY configs/ ./configs/
