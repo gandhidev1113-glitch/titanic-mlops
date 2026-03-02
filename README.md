@@ -40,6 +40,12 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
   - Code organization and documentation
 - **DEVKUMAR PARIKSHIT GANDHI** - DevOps & Automation Engineer
   - CI/CD pipeline setup (GitHub Actions), Dockerization, and environment consistency.
+  - Designed and implemented GitHub Actions CI/CD workflows for automated testing and linting on every push and pull request.
+  - Authored a multi-stage `Dockerfile` with separate `train` and `inference` build targets to keep images lean and purpose-built.
+  - Enforced environment consistency across local, CI, and Docker using `uv.lock` and `.python-version`.
+  - Integrated pre-commit hook enforcement (Black, Ruff) into the CI pipeline as automated quality gates.
+  - Configured branch protection rules on `main` requiring all CI checks to pass before merging.
+  - Managed Docker volume mounts and environment variable injection (`MODEL_URI`, `FEATURE_COLUMNS_PATH`) for flexible model loading.
 - **Thai Bao DUONG** - Serving & Monitoring Engineer (FastAPI Owner)
    - Build and maintain the FastAPI inference service: POST /predict, GET /health, GET /ready with Pydantic schemas and consistent error handling.
 	- Implement model loading interface (artifact path / MODEL_URI) aligned with training outputs and MLflow conventions.
