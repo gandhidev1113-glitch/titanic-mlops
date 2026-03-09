@@ -22,6 +22,9 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -406,3 +409,24 @@ if __name__ == "__main__":
         test_size=args.test_size,
         random_state=args.random_state,
     )
+
+
+    """
+    Below will be the functions to train more models 
+    """
+
+def get_models(random_state: int = 42) -> dict:
+    """
+    Return a dictionary of candidate models to evaluate.
+    """
+
+    models = {
+        "logistic_regression": LogisticRegression(max_iter=1000),
+        "gradient_boosting": GradientBoostingClassifier(
+            n_estimators=200,
+            random_state=random_state
+        ),
+        "svm": SVC(kernel="rbf", probability=True)
+    }
+
+    return models
