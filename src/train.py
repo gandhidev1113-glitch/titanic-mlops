@@ -430,3 +430,19 @@ def get_models(random_state: int = 42) -> dict:
     }
 
     return models
+
+def train_multiple_models(models: dict, X_train, y_train):
+    """
+    Train multiple models and return trained models.
+    """
+
+    trained_models = {}
+
+    for name, model in models.items():
+        print(f"\nTraining model: {name}")
+        model.fit(X_train, y_train)
+        trained_models[name] = model
+
+    return trained_models
+
+    
