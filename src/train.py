@@ -472,3 +472,19 @@ def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame
     print(results_df)
 
     return results_df
+
+def select_best_model(results_df: pd.DataFrame, trained_models: dict):
+    """
+    Select the best model based on validation accuracy.
+    """
+
+    best_row = results_df.iloc[0]
+    best_model_name = best_row["model"]
+
+    best_model = trained_models[best_model_name]
+
+    print("\nBest model selected:")
+    print(f"Model: {best_model_name}")
+    print(f"Validation Accuracy: {best_row['accuracy']:.4f}")
+
+    return best_model_name, best_model
