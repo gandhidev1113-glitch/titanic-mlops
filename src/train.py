@@ -446,3 +446,29 @@ def train_multiple_models(models: dict, X_train, y_train):
     return trained_models
 
     
+def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame:
+    """
+    Evaluate multiple models using the existing evaluate_model function.
+    """
+
+    results = []
+
+    for name, model in models.items():
+        print(f"\nEvaluating model: {name}")
+
+        metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
+
+        results.append({
+            "model": name,
+            "accuracy": metrics["val_accuracy"],
+            "precision": metrics["val_precision"],
+            "recall": metrics["val_recall"],
+            "f1_score": metrics["val_f1"]
+        })
+
+    results_df = pd.DataFrame(results).sort_values("accuracy", ascending=False)
+
+    print("\nModel comparison:")
+    print(results_df)
+
+    return results_df
