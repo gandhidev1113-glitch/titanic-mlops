@@ -22,6 +22,12 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from xgboost import XGBClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -179,11 +185,11 @@ def evaluate_model(
     print(confusion_matrix(y_val, y_val_pred))
 
     # Feature importance (top 10)
-    print("\n--- Top 10 Feature Importances ---")
+    """print("\n--- Top 10 Feature Importances ---")
     importance = pd.DataFrame(
         {"feature": X_train.columns, "importance": model.feature_importances_}
     ).sort_values("importance", ascending=False)
-    print(importance.head(10).to_string(index=False))
+    print(importance.head(10).to_string(index=False))"""
 
     # Return metrics dictionary for MLflow logging
     metrics = {
@@ -328,13 +334,25 @@ def main(
         )
 
         # Train
-        model = train_baseline_model(
+        """model = train_baseline_model(
             X_train,
             y_train,
             n_estimators=n_estimators,
             max_depth=max_depth,
             random_state=random_state,
-        )
+        )"""
+        ## NEW
+        models = get_models()
+
+        trained_models = train_multiple_models(models, X_train, y_train)
+
+        # Compare models
+        results_df = compare_models(trained_models, X_train, y_train, X_val, y_val)
+
+        # Select best model
+        best_model_name, best_model = select_best_model(results_df, trained_models)
+
+        model = best_model
 
         # Evaluate
         metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
@@ -353,14 +371,14 @@ def main(
         save_kaggle_predictions(model, X_kaggle)
 
         # Log feature importance as artifact
-        importance_df = pd.DataFrame(
+        """importance_df = pd.DataFrame(
             {"feature": X_train.columns, "importance": model.feature_importances_}
         ).sort_values("importance", ascending=False)
 
         importance_path = "data/output/feature_importance.csv"
         Path(os.path.dirname(importance_path)).mkdir(parents=True, exist_ok=True)
         importance_df.to_csv(importance_path, index=False)
-        mlflow.log_artifact(importance_path)
+        mlflow.log_artifact(importance_path)"""
 
         print("\n" + "=" * 60)
         print("Training pipeline completed successfully!")
@@ -406,3 +424,100 @@ if __name__ == "__main__":
         test_size=args.test_size,
         random_state=args.random_state,
     )
+
+    """
+    Below will be the functions to train more models
+    """
+
+
+def get_models(random_state: int = 42) -> dict:
+    """
+    Return a dictionary of candidate models to evaluate.
+    """
+
+    models = {
+        "logistic_regression": LogisticRegression(max_iter=1000),
+        "random_forest": RandomForestClassifier(
+            n_estimators=300, max_depth=12, random_state=random_state, n_jobs=-1
+        ),
+        "gradient_boosting": GradientBoostingClassifier(
+            n_estimators=200, random_state=random_state
+        ),
+        "decision_tree": DecisionTreeClassifier(max_depth=8, random_state=random_state),
+        "knn": KNeighborsClassifier(n_neighbors=7),
+        "svm": SVC(kernel="rbf", probability=True),
+        "xgboost": XGBClassifier(
+            n_estimators=300,
+            learning_rate=0.05,
+            max_depth=6,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=random_state,
+            use_label_encoder=False,
+            eval_metric="logloss",
+        ),
+    }
+
+    return models
+
+
+def train_multiple_models(models: dict, X_train, y_train):
+    """
+    Train multiple models and return trained models.
+    """
+
+    trained_models = {}
+
+    for name, model in models.items():
+        print(f"\nTraining model: {name}")
+        model.fit(X_train, y_train)
+        trained_models[name] = model
+
+    return trained_models
+
+
+def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame:
+    """
+    Evaluate multiple models using the existing evaluate_model function.
+    """
+
+    results = []
+
+    for name, model in models.items():
+        print(f"\nEvaluating model: {name}")
+
+        metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
+
+        results.append(
+            {
+                "model": name,
+                "accuracy": metrics["val_accuracy"],
+                "precision": metrics["val_precision"],
+                "recall": metrics["val_recall"],
+                "f1_score": metrics["val_f1"],
+            }
+        )
+
+    results_df = pd.DataFrame(results).sort_values("accuracy", ascending=False)
+
+    print("\nModel comparison:")
+    print(results_df)
+
+    return results_df
+
+
+def select_best_model(results_df: pd.DataFrame, trained_models: dict):
+    """
+    Select the best model based on validation accuracy.
+    """
+
+    best_row = results_df.iloc[0]
+    best_model_name = best_row["model"]
+
+    best_model = trained_models[best_model_name]
+
+    print("\nBest model selected:")
+    print(f"Model: {best_model_name}")
+    print(f"Validation Accuracy: {best_row['accuracy']:.4f}")
+
+    return best_model_name, best_model
