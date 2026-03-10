@@ -521,4 +521,3 @@ def select_best_model(results_df: pd.DataFrame, trained_models: dict):
     print(f"Validation Accuracy: {best_row['accuracy']:.4f}")
 
     return best_model_name, best_model
-  
