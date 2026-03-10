@@ -425,10 +425,10 @@ if __name__ == "__main__":
         random_state=args.random_state,
     )
 
-
     """
     Below will be the functions to train more models 
     """
+
 
 def get_models(random_state: int = 42) -> dict:
     """
@@ -436,35 +436,16 @@ def get_models(random_state: int = 42) -> dict:
     """
 
     models = {
-
         "logistic_regression": LogisticRegression(max_iter=1000),
-
         "random_forest": RandomForestClassifier(
-            n_estimators=300,
-            max_depth=12,
-            random_state=random_state,
-            n_jobs=-1
+            n_estimators=300, max_depth=12, random_state=random_state, n_jobs=-1
         ),
-
         "gradient_boosting": GradientBoostingClassifier(
-            n_estimators=200,
-            random_state=random_state
+            n_estimators=200, random_state=random_state
         ),
-
-        "decision_tree": DecisionTreeClassifier(
-            max_depth=8,
-            random_state=random_state
-        ),
-
-        "knn": KNeighborsClassifier(
-            n_neighbors=7
-        ),
-
-        "svm": SVC(
-            kernel="rbf",
-            probability=True
-        ),
-
+        "decision_tree": DecisionTreeClassifier(max_depth=8, random_state=random_state),
+        "knn": KNeighborsClassifier(n_neighbors=7),
+        "svm": SVC(kernel="rbf", probability=True),
         "xgboost": XGBClassifier(
             n_estimators=300,
             learning_rate=0.05,
@@ -473,11 +454,12 @@ def get_models(random_state: int = 42) -> dict:
             colsample_bytree=0.8,
             random_state=random_state,
             use_label_encoder=False,
-            eval_metric="logloss"
-        )
+            eval_metric="logloss",
+        ),
     }
 
     return models
+
 
 def train_multiple_models(models: dict, X_train, y_train):
     """
@@ -493,7 +475,7 @@ def train_multiple_models(models: dict, X_train, y_train):
 
     return trained_models
 
-    
+
 def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame:
     """
     Evaluate multiple models using the existing evaluate_model function.
@@ -506,13 +488,15 @@ def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame
 
         metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
 
-        results.append({
-            "model": name,
-            "accuracy": metrics["val_accuracy"],
-            "precision": metrics["val_precision"],
-            "recall": metrics["val_recall"],
-            "f1_score": metrics["val_f1"]
-        })
+        results.append(
+            {
+                "model": name,
+                "accuracy": metrics["val_accuracy"],
+                "precision": metrics["val_precision"],
+                "recall": metrics["val_recall"],
+                "f1_score": metrics["val_f1"],
+            }
+        )
 
     results_df = pd.DataFrame(results).sort_values("accuracy", ascending=False)
 
@@ -520,6 +504,7 @@ def compare_models(models: dict, X_train, y_train, X_val, y_val) -> pd.DataFrame
     print(results_df)
 
     return results_df
+
 
 def select_best_model(results_df: pd.DataFrame, trained_models: dict):
     """
