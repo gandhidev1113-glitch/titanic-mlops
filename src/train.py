@@ -426,7 +426,7 @@ if __name__ == "__main__":
     )
 
     """
-    Below will be the functions to train more models 
+    Below will be the functions to train more models
     """
 
 
