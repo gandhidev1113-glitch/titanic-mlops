@@ -353,7 +353,7 @@ def main(
         best_model_name, best_model = select_best_model(results_df, trained_models)
 
         model = best_model
-        feature_importance_df = compute_feature_importance(
+        compute_feature_importance(
             model, X_train.columns, output_path="data/output/feature_importance.csv"
         )
         # Evaluate
