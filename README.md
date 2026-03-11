@@ -130,7 +130,9 @@ MLOFINAL/
 │   ├── main.py           # Main CLI entry point
 │   ├── preprocessing.py  # Data preprocessing pipeline
 │   ├── train.py          # Model training with MLflow
-│   └── utils.py          # Shared utility functions
+│   ├── utils.py          # Shared utility functions
+│   └── dashboard/        # Streamlit dashboard for data exploration
+│       └── streamlit_app.py   # Titanic dataset interactive dashboard
 ├── scripts/               # Utility and pipeline scripts
 │   ├── __init__.py
 │   ├── download_data.py  # Optional: Kaggle API data download (if needed)
