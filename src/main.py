@@ -7,6 +7,7 @@ of the ML pipeline.
 
 import argparse
 import sys
+import subprocess
 
 
 def run_preprocessing():
@@ -25,6 +26,16 @@ def run_training():
 
     print("Running training pipeline...\n")
     train_main()
+
+
+def run_dashboard():
+    """Launch the Streamlit dashboard."""
+    print("Launching Streamlit dashboard...\n")
+
+    subprocess.run(
+        ["streamlit", "run", "src/dashboard/streamlit_app.py"],
+        check=True,
+    )
 
 
 def run_download():
@@ -50,6 +61,7 @@ def main():
 Examples:
   python -m src.main preprocess    # Run data preprocessing
   python -m src.main train         # Train the model
+  python -m src.main dashboard    # Launch Streamlit dashboard
   python -m src.main download     # Optional: Download dataset via Kaggle API
   python -m src.main all           # Run full pipeline (preprocess -> train)
                                    # Note: Assumes data is already in data/raw/
@@ -58,7 +70,7 @@ Examples:
 
     parser.add_argument(
         "command",
-        choices=["preprocess", "train", "download", "all"],
+        choices=["preprocess", "train", "download", "dashboard", "all"],
         help="Command to execute (download is optional, requires Kaggle API)",
     )
 
@@ -75,6 +87,8 @@ Examples:
         run_preprocessing()
     elif args.command == "train":
         run_training()
+    elif args.command == "dashboard":
+        run_dashboard()
     elif args.command == "all":
         print("Running full pipeline: preprocess -> train\n")
         print("Note: Assuming data files are already in data/raw/")
@@ -82,6 +96,7 @@ Examples:
         run_preprocessing()
         print("\n" + "-" * 60 + "\n")
         run_training()
+        run_dashboard()
 
     print("\n" + "=" * 60)
     print("Pipeline execution completed!")

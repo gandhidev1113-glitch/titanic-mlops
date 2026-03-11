@@ -96,6 +96,7 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
    # Using main CLI entry point (recommended)
    python -m src.main preprocess    # Preprocess data
    python -m src.main train         # Train baseline model
+   python -m src.main dashboard     # Launch dashboard
    python -m src.main all           # Run full pipeline (preprocess + train)
    ```
 
@@ -103,6 +104,7 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
    ```bash
    uv run python -m src.main preprocess
    uv run python -m src.main train
+   uv run python -m src.main dashboard
    ```
 
    Alternatively, you can run scripts directly:
@@ -112,6 +114,9 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
 
    # Train baseline model
    python -m src.train
+
+   # Launch dashboard
+   streamlit run src/dashboard/streamlit_app.py
    ```
 
    > **Optional**: If you want to use automated download via Kaggle API, you can use `python scripts/download_data.py` (requires Kaggle API setup).
@@ -130,7 +135,9 @@ MLOFINAL/
 │   ├── main.py           # Main CLI entry point
 │   ├── preprocessing.py  # Data preprocessing pipeline
 │   ├── train.py          # Model training with MLflow
-│   └── utils.py          # Shared utility functions
+│   ├── utils.py          # Shared utility functions
+│   └── dashboard/        # Streamlit dashboard for data exploration
+│       └── streamlit_app.py   # Titanic dataset interactive dashboard
 ├── scripts/               # Utility and pipeline scripts
 │   ├── __init__.py
 │   ├── download_data.py  # Optional: Kaggle API data download (if needed)
@@ -163,6 +170,7 @@ MLOFINAL/
 2. **Preprocessing**: Run `python -m src.main preprocess` (or `python -m src.preprocessing`) to clean and engineer features
 3. **Training**: Execute `python -m src.main train` (or `python -m src.train`) to train the baseline model
 4. **Evaluation**: Model metrics are displayed during training
+5. **Dashboard**: Showing dashboard
 
 ### Quick Start (Full Pipeline)
 
@@ -170,7 +178,7 @@ MLOFINAL/
 python -m src.main all
 ```
 
-This will run: preprocess → train in sequence (assumes data is already in `data/raw/`).
+This will run: preprocess → train → dashboard in sequence (assumes data is already in `data/raw/`).
 
 ## 🧪 Testing
 
