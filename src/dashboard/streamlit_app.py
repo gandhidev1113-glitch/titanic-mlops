@@ -4,11 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-st.set_page_config(
-    page_title="Titanic Data Analysis",
-    page_icon="🚢",
-    layout="wide"
-)
+st.set_page_config(page_title="Titanic Data Analysis", page_icon="🚢", layout="wide")
 
 st.title("🚢 Titanic Dataset Analysis Dashboard")
 
@@ -97,10 +93,7 @@ st.pyplot(fig)
 # Interactive filtering
 st.header("Interactive Data Exploration")
 
-selected_class = st.selectbox(
-    "Select Passenger Class",
-    df["Pclass"].unique()
-)
+selected_class = st.selectbox("Select Passenger Class", df["Pclass"].unique())
 
 filtered_df = df[df["Pclass"] == selected_class]
 
