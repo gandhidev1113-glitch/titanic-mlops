@@ -96,6 +96,7 @@ Examples:
         run_preprocessing()
         print("\n" + "-" * 60 + "\n")
         run_training()
+        run_dashboard()
 
     print("\n" + "=" * 60)
     print("Pipeline execution completed!")
