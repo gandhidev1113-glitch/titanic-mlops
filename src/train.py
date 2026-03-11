@@ -353,7 +353,9 @@ def main(
         best_model_name, best_model = select_best_model(results_df, trained_models)
 
         model = best_model
-
+        feature_importance_df = compute_feature_importance(
+            model, X_train.columns, output_path="data/output/feature_importance.csv"
+        )
         # Evaluate
         metrics = evaluate_model(model, X_train, y_train, X_val, y_val)
 
@@ -521,3 +523,35 @@ def select_best_model(results_df: pd.DataFrame, trained_models: dict):
     print(f"Validation Accuracy: {best_row['accuracy']:.4f}")
 
     return best_model_name, best_model
+
+
+def compute_feature_importance(model, feature_names, top_n=10, output_path=None):
+    """
+    Compute and optionally save feature importance.
+
+    Args:
+        model: trained model with feature_importances_ attribute
+        feature_names: list of feature names
+        top_n: number of top features to display
+        output_path: optional path to save feature importance CSV
+
+    Returns:
+        pd.DataFrame with feature importance
+    """
+
+    if not hasattr(model, "feature_importances_"):
+        raise ValueError("Model does not support feature_importances_.")
+
+    importance_df = pd.DataFrame(
+        {"feature": feature_names, "importance": model.feature_importances_}
+    ).sort_values("importance", ascending=False)
+
+    print("\n--- Top Feature Importances ---")
+    print(importance_df.head(top_n))
+
+    if output_path:
+        Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+        importance_df.to_csv(output_path, index=False)
+        print(f"Feature importance saved to {output_path}")
+
+    return importance_df
