@@ -116,7 +116,7 @@ This project implements an end-to-end ML Ops pipeline for predicting passenger s
    python -m src.train
 
    # Launch dashboard
-   streamlit run src/dashboard/streamlit_app.py 
+   streamlit run src/dashboard/streamlit_app.py
    ```
 
    > **Optional**: If you want to use automated download via Kaggle API, you can use `python scripts/download_data.py` (requires Kaggle API setup).
