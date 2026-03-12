@@ -181,6 +181,7 @@ def ready() -> dict:
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Not ready: {exc}") from exc
 
+
 @app.get("/metrics")
 def metrics() -> dict:
     """Basic runtime metrics for observability."""
@@ -191,6 +192,7 @@ def metrics() -> dict:
         "total_errors": ERROR_COUNT,
         "average_latency_ms": round(avg_latency, 3),
     }
+
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: PredictionRequest) -> PredictionResponse:
