@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,6 +55,10 @@ class PredictionResponse(BaseModel):
 
 
 _MODEL_BUNDLE: ModelBundle | None = None
+
+PREDICTION_COUNT = 0
+ERROR_COUNT = 0
+LATENCIES_MS: list[float] = []
 
 
 def _load_feature_columns(feature_columns_path: str) -> list[str] | None:
@@ -177,12 +182,29 @@ def ready() -> dict:
         raise HTTPException(status_code=503, detail=f"Not ready: {exc}") from exc
 
 
+@app.get("/metrics")
+def metrics() -> dict:
+    """Basic runtime metrics for observability."""
+    avg_latency = sum(LATENCIES_MS) / len(LATENCIES_MS) if LATENCIES_MS else 0.0
+
+    return {
+        "total_predictions": PREDICTION_COUNT,
+        "total_errors": ERROR_COUNT,
+        "average_latency_ms": round(avg_latency, 3),
+    }
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: PredictionRequest) -> PredictionResponse:
     """Run inference for one passenger and return prediction + probability."""
+    global PREDICTION_COUNT, ERROR_COUNT
+
+    start_time = time.perf_counter()
+
     try:
         bundle = get_model_bundle()
     except Exception as exc:
+        ERROR_COUNT += 1
         raise HTTPException(status_code=503, detail=f"Model unavailable: {exc}") from exc
 
     features = _build_feature_dataframe(payload)
@@ -192,7 +214,12 @@ def predict(payload: PredictionRequest) -> PredictionResponse:
         prediction = int(bundle.model.predict(aligned)[0])
         probability = float(bundle.model.predict_proba(aligned)[0][1])
     except Exception as exc:
+        ERROR_COUNT += 1
         raise HTTPException(status_code=500, detail=f"Inference failed: {exc}") from exc
+
+    latency_ms = (time.perf_counter() - start_time) * 1000
+    LATENCIES_MS.append(latency_ms)
+    PREDICTION_COUNT += 1
 
     label = "survived" if prediction == 1 else "not_survived"
     return PredictionResponse(

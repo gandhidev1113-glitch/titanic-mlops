@@ -370,6 +370,7 @@ This project supports reproducible training and inference using a multi-stage Do
 - `GET /health`: liveness check
 - `GET /ready`: readiness + model source
 - `POST /predict`: single-passenger inference
+- `GET /metrics`: exposes runtime prediction metrics for monitoring
 
 ### API Contract
 

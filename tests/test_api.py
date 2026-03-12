@@ -70,6 +70,19 @@ def test_ready_endpoint_not_ready(monkeypatch):
     assert "Not ready" in response.json()["detail"]
 
 
+def test_metrics_endpoint(monkeypatch):
+    monkeypatch.setattr("src.api.get_model_bundle", lambda: _mock_bundle())
+    client = TestClient(app)
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "total_predictions" in payload
+    assert "total_errors" in payload
+    assert "average_latency_ms" in payload
+
+
 def test_predict_endpoint(monkeypatch):
     monkeypatch.setattr("src.api.get_model_bundle", lambda: _mock_bundle())
     client = TestClient(app)
