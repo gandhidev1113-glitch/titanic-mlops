@@ -163,6 +163,50 @@ MLOFINAL/
 ├── .pre-commit-config.yaml # Pre-commit hooks config
 └── README.md              # This file
 ```
+## 🏗️ System Architecture
+
+The project follows a modular MLOps architecture that separates data processing, model training, and model serving.
+
+Pipeline stages:
+
+1. **Data Ingestion**
+   - Titanic dataset downloaded from Kaggle
+   - Stored in `data/raw/`
+
+2. **Data Preprocessing**
+   - Feature engineering and cleaning implemented in `src/preprocessing.py`
+   - Outputs stored in `data/derived/`
+
+3. **Model Training**
+   - Random Forest model trained using `src/train.py`
+   - MLflow logs parameters, metrics, and artifacts
+   - Model artifact saved to `models/baseline_model.pkl`
+
+4. **Experiment Tracking**
+   - MLflow tracks runs, parameters, metrics, and artifacts
+   - Enables experiment comparison and reproducibility
+
+5. **Model Serving**
+   - FastAPI inference service implemented in `src/api.py`
+   - Provides endpoints:
+     - `/health` for liveness
+     - `/ready` for readiness
+     - `/predict` for inference
+
+6. **Containerization**
+   - Multi-stage Dockerfile:
+     - `train` target for model training
+     - `inference` target for API serving
+
+7. **CI/CD Pipeline**
+   - GitHub Actions runs:
+     - Linting (Black, Ruff)
+     - Unit tests
+     - API contract tests
+     - Docker build verification
+     - Container smoke tests
+
+This architecture ensures that training, experimentation, and inference are reproducible and production-ready.
 
 ## 🔄 Workflow
 
@@ -389,6 +433,102 @@ docker run --rm -p 8000:8000 \
   -v "$(pwd)/models:/app/models" \
   titanic-api:latest
 ```
+## 📈 Checkpoint 4 - Monitoring & Reliability
+
+Basic monitoring strategies are implemented to ensure the reliability of the prediction service.
+
+### Health Monitoring
+
+Two endpoints are used for service monitoring:
+
+**/health**
+- Indicates whether the API service is running.
+- Returns HTTP 200 when the application is alive.
+
+**/ready**
+- Indicates whether the model is successfully loaded.
+- Returns:
+  - HTTP 200 when model is ready for inference
+  - HTTP 503 when the model is unavailable
+
+This separation allows orchestration systems to detect application failures and model availability issues independently.
+
+### Runtime Observability
+
+The FastAPI service includes structured logging to capture:
+
+- Incoming prediction requests
+- Errors during inference
+- Model loading status
+- API startup events
+
+These logs help diagnose runtime failures and track usage patterns.
+
+### CI Monitoring
+
+Continuous Integration ensures system reliability by running automated checks on every push and pull request:
+
+- Code linting
+- Unit tests
+- API contract tests
+- Docker build verification
+- Container smoke tests
+
+This prevents broken builds from reaching the main branch.
+
+### Potential Production Monitoring
+
+In a production environment, the following metrics would be monitored:
+
+- API request latency
+- Request volume
+- Error rate
+- Model prediction distribution
+- Invalid request frequency
+- Service uptime
+
+These metrics could be integrated with observability tools such as **Prometheus** and **Grafana**.
+
+## ⚠️ Limitations & Future Work
+
+While the project demonstrates a complete MLOps pipeline, several improvements could be implemented in a production system.
+
+### Current Limitations
+
+- Monitoring is limited to basic health and readiness endpoints.
+- No automated model retraining pipeline.
+- No data drift or model drift detection.
+- Model artifacts are mounted manually in Docker rather than retrieved automatically from a model registry.
+- The dataset is relatively small and does not represent large-scale production workloads.
+
+### Future Improvements
+
+Potential enhancements include:
+
+- Integrating **Prometheus** and **Grafana** for real-time monitoring.
+- Implementing **data drift detection** using tools such as EvidentlyAI.
+- Automating **model retraining pipelines** using scheduled workflows.
+- Deploying the service to **cloud infrastructure** (AWS, GCP, or Azure).
+- Adding **feature validation and schema enforcement**.
+- Implementing **model version rollout strategies** such as canary deployments or A/B testing.
+
+These improvements would bring the system closer to a full production-grade MLOps platform.
+
+## 🏁 Final Summary
+
+This project demonstrates the implementation of a full MLOps pipeline for a machine learning application.
+
+Key capabilities implemented:
+
+- Data preprocessing and feature engineering
+- Reproducible training with MLflow experiment tracking
+- Automated testing and code quality enforcement
+- Containerized model training and inference
+- FastAPI-based prediction service
+- CI/CD pipelines for automated validation
+- Basic monitoring and reliability practices
+
+The system reflects modern MLOps practices and provides a foundation that can be extended to production-scale machine learning systems.
 
 ## 📝 Notes
 
