@@ -2,8 +2,7 @@
 
 ## Demo Video
 
-> 📽️ **[Click here to watch the demo video](#)**
-> *(Link will be updated before March 15, 2026)*
+> 📽️ **[https://youtu.be/9g6wdBLimBU](#)**
 
 The demo video (≤ 10 minutes) covers:
 - Automatic build & deployment triggered by a GitHub push
