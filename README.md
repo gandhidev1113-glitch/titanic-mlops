@@ -566,3 +566,4 @@ The system reflects modern MLOps practices and provides a foundation that can be
 ### Bonus Points
 - Using Titanic dataset (approved by professor)
 - Focus on ML Ops best practices and additional features for bonus points
+# demo trigger
